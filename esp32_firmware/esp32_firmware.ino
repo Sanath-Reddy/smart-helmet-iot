@@ -71,7 +71,7 @@ bool use_raw_i2c = false;
 
 // Reconnection Timers with Exponential Backoff
 unsigned long last_wifi_reconnect_attempt = 0;
-unsigned long wifi_backoff_delay = 1000;       // Start at 1s
+unsigned long wifi_backoff_delay = 10000;       // Start at 10s (gives initial connection time)
 
 unsigned long last_ws_reconnect_attempt = 0;
 unsigned long ws_backoff_delay = 1000;         // Start at 1s
@@ -233,7 +233,7 @@ void initWiFi() {
 void handleWiFiConnection() {
   if (WiFi.status() == WL_CONNECTED) {
     // Reset backoff once connected
-    wifi_backoff_delay = 1000; 
+    wifi_backoff_delay = 10000; 
     return;
   }
 
@@ -243,6 +243,7 @@ void handleWiFiConnection() {
     
     Serial.println("[WiFi] Connection disconnected. Retrying...");
     WiFi.disconnect();
+    delay(100);
     WiFi.begin(ssid, password);
     
     // Exponential backoff scaling up to 120 seconds
