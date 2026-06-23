@@ -23,6 +23,7 @@ const wss = new WebSocket.Server({ noServer: true });
 
 // State Management
 let esp32Connected = false;
+let activeEsp32Sockets = new Set();
 let lastSmsSentTime = 0;
 const SMS_COOLDOWN_MS = 30000; // 30-second rate limiting cooldown
 
@@ -259,6 +260,7 @@ wss.on('connection', (ws, req) => {
   console.log(`[WebSocket] Client connected of type: ${clientType}`);
 
   if (clientType === '/esp32') {
+    activeEsp32Sockets.add(ws);
     esp32Connected = true;
     telemetryState.is_simulated = false;
     broadcastToDashboards({ type: "CONNECTION_STATUS", connected: true, isSimulated: false });
@@ -302,10 +304,13 @@ wss.on('connection', (ws, req) => {
     });
 
     ws.on('close', () => {
-      console.log("[WebSocket] ESP32 disconnected.");
-      esp32Connected = false;
-      telemetryState.is_simulated = true;
-      broadcastToDashboards({ type: "CONNECTION_STATUS", connected: false, isSimulated: true });
+      activeEsp32Sockets.delete(ws);
+      console.log("[WebSocket] ESP32 client disconnected.");
+      if (activeEsp32Sockets.size === 0) {
+        esp32Connected = false;
+        telemetryState.is_simulated = true;
+        broadcastToDashboards({ type: "CONNECTION_STATUS", connected: false, isSimulated: true });
+      }
     });
 
   } else if (clientType === '/dashboard') {
