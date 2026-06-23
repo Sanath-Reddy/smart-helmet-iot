@@ -269,6 +269,8 @@ wss.on('connection', (ws, req) => {
       try {
         const data = JSON.parse(message.toString());
         
+        const wasAccident = telemetryState.accident;
+        
         // Handle telemetry data incoming from ESP32
         telemetryState = {
           ...telemetryState,
@@ -283,7 +285,7 @@ wss.on('connection', (ws, req) => {
         };
 
         // Check if accident state is toggled from false -> true
-        if (data.accident && !telemetryState.accident) {
+        if (data.accident && !wasAccident) {
           console.log("[Alert] Impact accident detected from ESP32 hardware!");
           const mapsLink = data.gps?.valid 
             ? `https://maps.google.com/?q=${data.gps.lat},${data.gps.lng}`
@@ -292,9 +294,6 @@ wss.on('connection', (ws, req) => {
           
           await sendSmsAlert(smsMsg);
         }
-
-        // Keep local state synced
-        telemetryState.accident = data.accident;
 
         // Broadcast raw telemetry to dashboard panels
         broadcastToDashboards({ type: "TELEMETRY", data: telemetryState });
