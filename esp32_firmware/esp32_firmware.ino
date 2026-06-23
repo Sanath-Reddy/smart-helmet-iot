@@ -45,7 +45,7 @@ const char* server_host = "172.23.128.125";    // Change to your backend server'
 const int server_port = 3000;                 // Server listening port (default 3000)
 
 #define MQ135_PIN 34                          // MQ135 Analog Pin
-#define ACCEL_THRESHOLD_G 2.3                 // Accident threshold in G's
+#define ACCEL_THRESHOLD_G 4.5                 // Accident threshold in G's
 #define ACCIDENT_LATCH_MS 8000                // Latch duration (8 seconds)
 #define TELEMETRY_INTERVAL_MS 2000            // Send telemetry every 2 seconds
 #define GPS_STALENESS_MS 30000                // GPS staleness timeout (30 seconds)
@@ -274,7 +274,21 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
       break;
       
     case WStype_TEXT:
-      Serial.printf("[WS] Received server payload: %s\n", payload);
+      {
+        Serial.printf("[WS] Received server payload: %s\n", payload);
+        
+        // Parse incoming commands from the backend server
+        JsonDocument doc;
+        DeserializationError error = deserializeJson(doc, payload);
+        if (!error) {
+          const char* commandType = doc["type"];
+          if (commandType && strcmp(commandType, "RESET_ACCIDENT") == 0) {
+            accident_detected = false;
+            accident_latch_start = 0;
+            Serial.println("[Alert Control] Accident alarm reset by server command!");
+          }
+        }
+      }
       break;
       
     case WStype_ERROR:

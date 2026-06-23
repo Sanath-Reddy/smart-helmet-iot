@@ -32,8 +32,8 @@ let telemetryState = {
   device_id: "ESP32_HELMET_01",
   accident: false,
   gps: {
-    lat: 12.9716, // Default Bangalore coordinates
-    lng: 77.5946,
+    lat: 12.9232045, // Default coordinates
+    lng: 77.5007957,
     valid: false,
     stale: true,
     timestamp: Date.now()
@@ -370,6 +370,13 @@ wss.on('connection', (ws, req) => {
           telemetryState.gps.timestamp = Date.now();
           broadcastToDashboards({ type: "TELEMETRY", data: telemetryState });
         }
+
+        if (clientMsg.type === "DISMISS_ALARM") {
+          console.log("[Alert Control] Alarm dismissed by user dashboard.");
+          telemetryState.accident = false;
+          broadcastToEsp32({ type: "RESET_ACCIDENT" });
+          broadcastToDashboards({ type: "TELEMETRY", data: telemetryState });
+        }
       } catch (err) {
         console.error("[WebSocket Dashboard Error] Message parsing failed:", err.message);
       }
@@ -382,11 +389,24 @@ function broadcastToDashboards(packet) {
   const jsonStr = JSON.stringify(packet);
   wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
-      // Parse query parameters to identify dashboards
       try {
         client.send(jsonStr);
       } catch (e) {
         console.error("[WS Broadcast error]", e.message);
+      }
+    }
+  });
+}
+
+// Helper: Broadcast reset commands to connected ESP32 client modules
+function broadcastToEsp32(packet) {
+  const jsonStr = JSON.stringify(packet);
+  activeEsp32Sockets.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      try {
+        client.send(jsonStr);
+      } catch (e) {
+        console.error("[WS Broadcast to ESP32 error]", e.message);
       }
     }
   });
@@ -409,7 +429,7 @@ let simulationInterval = setInterval(() => {
     const gasDiff = Math.floor(Math.random() * 20 - 10);
     telemetryState.gas_ppm = Math.max(100, Math.min(10000, telemetryState.gas_ppm + gasDiff));
 
-    // Slow drifting GPS route (Bangalore center simulation)
+    // Slow drifting GPS route (Default coordinates simulation)
     telemetryState.gps.lat += (Math.random() * 0.0001 - 0.00005);
     telemetryState.gps.lng += (Math.random() * 0.0001 - 0.00005);
     telemetryState.gps.valid = true;

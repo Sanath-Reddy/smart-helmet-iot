@@ -406,8 +406,8 @@ async function findNearbyEmergency(lat, lng) {
 
 // Trigger Manual SOS via SOS button click
 async function triggerEmergencySOS() {
-  let lat = 12.9716; // Fallback
-  let lng = 77.5946;
+  let lat = 12.9232045; // Fallback default coordinates
+  let lng = 77.5007957;
   let source = "Smart Helmet Dashboard (Cached Location)";
 
   if (riderMarker) {
@@ -501,7 +501,7 @@ function initSimulatorControls() {
 
   presetBlr.addEventListener('click', () => {
     updatePresetClass(presetBlr);
-    socket.send(JSON.stringify({ type: "SET_SIM_GPS", lat: 12.9716, lng: 77.5946 }));
+    socket.send(JSON.stringify({ type: "SET_SIM_GPS", lat: 12.9232045, lng: 77.5007957 }));
   });
 
   presetNyc.addEventListener('click', () => {
@@ -539,14 +539,15 @@ function dismissAlarm() {
   document.getElementById('card-dismiss-btn').classList.add('hidden');
   
   // Notify server to override accident status
-  // Note: Telemetry state on server will be reset on subsequent packets, but we force simulated state clear immediately
-  // If hardware is sending real "true" accident data, this will override, but since it is hysteresis timed, we let it clear.
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ type: "DISMISS_ALARM" }));
+  }
 }
 
 // Document Load Event
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize default location map (Bangalore)
-  initMap(12.9716, 77.5946);
+  // Initialize default location map
+  initMap(12.9232045, 77.5007957);
   
   // Initialize chart
   initIMUChart();
