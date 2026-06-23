@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Real-time IoT Smart Helmet Telemetry & Emergency SOS Dashboard">
+  <title>Aegis Helmet - Smart Helmet Dashboard</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Background Glowing Orbs -->
+  <div class="glow-orb orb-1"></div>
+  <div class="glow-orb orb-2"></div>
+  <div class="glow-orb orb-3"></div>
+
+  <!-- Accident Alarm Visual Overlay -->
+  <div id="accident-siren-overlay" class="siren-overlay hidden">
+    <div class="siren-content">
+      <div class="siren-icon-pulse">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <h2>CRITICAL ACCIDENT DETECTED!</h2>
+      <p>Latching emergency event. Sending automated Twilio SMS alert...</p>
+      <div class="countdown-bar-container">
+        <div id="latch-countdown-bar" class="countdown-bar"></div>
+      </div>
+      <button id="dismiss-siren-btn" class="btn btn-secondary-outline">
+        <i class="fa-solid fa-circle-check"></i> False Alarm / Dismiss
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="app-container">
+    
+    <!-- Top Header -->
+    <header class="glass-panel main-header">
+      <div class="header-brand">
+        <div class="brand-logo">
+          <i class="fa-solid fa-helmet-safety"></i>
+        </div>
+        <div class="brand-text">
+          <h1>AEGIS HELMET</h1>
+          <span>Smart IoT Telemetry Portal</span>
+        </div>
+      </div>
+      <div class="header-status">
+        <div id="conn-badge" class="badge status-simulating">
+          <span class="pulse-dot"></span>
+          <span id="conn-text">Simulation Mode</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Content Grid -->
+    <main class="dashboard-grid">
+      
+      <!-- Left Column: Map and Nearby Finder -->
+      <section class="grid-col left-col">
+        
+        <!-- Live GPS Map Card -->
+        <div class="glass-panel card map-card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-map-location-dot text-primary"></i> GPS Live Tracking</h3>
+            <span id="gps-staleness-badge" class="badge badge-normal">Active Fix</span>
+          </div>
+          <div class="map-wrapper">
+            <div id="leaflet-map"></div>
+          </div>
+          <div class="map-coordinates">
+            <div>
+              <small>LATITUDE</small>
+              <p id="coord-lat">--.------</p>
+            </div>
+            <div>
+              <small>LONGITUDE</small>
+              <p id="coord-lng">--.------</p>
+            </div>
+            <div>
+              <small>SPEED</small>
+              <p id="gps-speed">0.0 km/h</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Emergency Services Card -->
+        <div class="glass-panel card emergency-card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-shield-halved text-danger"></i> Nearby Help Finder (5km)</h3>
+            <button id="sos-btn" class="btn btn-danger pulse-btn">
+              <i class="fa-solid fa-kit-medical"></i> Trigger SOS
+            </button>
+          </div>
+          <p class="section-desc">Finds nearest hospitals and police stations centered around rider's location</p>
+          <div id="emergency-results" class="results-list">
+            <div class="empty-results">
+              <i class="fa-solid fa-magnifying-glass-location"></i>
+              <p>No query run. Press SOS button or trigger an accident to fetch local search results.</p>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Right Column: Sensor Metrics & Simulation Control -->
+      <section class="grid-col right-col">
+
+        <!-- Accident Sensor Card -->
+        <div id="accident-status-card" class="glass-panel card accident-card-normal">
+          <div class="accident-card-layout">
+            <div class="accident-icon-box">
+              <i id="accident-indicator-icon" class="fa-solid fa-heart-pulse"></i>
+            </div>
+            <div class="accident-info">
+              <h4>System Status</h4>
+              <p id="accident-status-desc">All systems normal. MPU6050 monitoring active.</p>
+            </div>
+            <button id="card-dismiss-btn" class="btn btn-danger-outline hidden">
+              Dismiss Alarm
+            </button>
+          </div>
+        </div>
+
+        <!-- Gas / Alcohol Monitor Card -->
+        <div class="glass-panel card sensor-card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-wind text-success"></i> Gas & Alcohol Detection</h3>
+            <span id="gas-status-badge" class="badge badge-success">Clean Air</span>
+          </div>
+          <div class="gauge-section">
+            <div class="gauge-display">
+              <h2 id="gas-ppm-val">350</h2>
+              <span>PPM</span>
+            </div>
+            <div class="progress-bar-container">
+              <div id="gas-progress" class="progress-bar bar-success" style="width: 3.5%;"></div>
+            </div>
+          </div>
+          <div class="sensor-limits">
+            <span>0 PPM (Min)</span>
+            <span>10,000 PPM (Max)</span>
+          </div>
+        </div>
+
+        <!-- MPU6050 IMU Acceleration Card -->
+        <div class="glass-panel card sensor-card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-gauge-high text-info"></i> MPU6050 Accelerometer</h3>
+            <span class="badge badge-normal">3-Axis G's</span>
+          </div>
+          <div class="imu-axes">
+            <div class="axis-box">
+              <span class="axis-lbl text-danger">X</span>
+              <span id="imu-ax" class="axis-val">0.00</span>
+            </div>
+            <div class="axis-box">
+              <span class="axis-lbl text-success">Y</span>
+              <span id="imu-ay" class="axis-val">0.00</span>
+            </div>
+            <div class="axis-box">
+              <span class="axis-lbl text-info">Z</span>
+              <span id="imu-az" class="axis-val">1.00</span>
+            </div>
+          </div>
+          <div class="chart-container" style="height: 180px; position: relative;">
+            <canvas id="imuChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Simulation Controller (For testing without hardware) -->
+        <div class="glass-panel card simulator-card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-sliders text-warning"></i> Dashboard Simulation Controls</h3>
+            <span id="sim-active-badge" class="badge badge-warning">Sim Active</span>
+          </div>
+          <p class="section-desc">Simulate physical parameters to evaluate safety trigger thresholds</p>
+          <div class="sim-controls">
+            
+            <div class="control-row">
+              <label for="sim-gas-slider">Simulate Gas/Alcohol level:</label>
+              <div class="slider-group">
+                <input type="range" id="sim-gas-slider" min="100" max="6000" step="50" value="350">
+                <span id="sim-gas-val">350 PPM</span>
+              </div>
+            </div>
+
+            <div class="control-row">
+              <label>Simulate Location Center:</label>
+              <div class="btn-group">
+                <button id="preset-blr" class="btn btn-tab active">Bangalore, IN</button>
+                <button id="preset-nyc" class="btn btn-tab">New York, US</button>
+                <button id="preset-lon" class="btn btn-tab">London, UK</button>
+              </div>
+            </div>
+
+            <div class="control-row action-row">
+              <button id="sim-impact-btn" class="btn btn-warning">
+                <i class="fa-solid fa-car-burst"></i> Simulate High-G Impact (>2.3g)
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+      
+    </main>
+
+    <!-- Footer -->
+    <footer class="main-footer-desc">
+      <p>&copy; 2026 Aegis Helmet System. Built for IoT PBL. Powered by ESP32, Leaflet Maps, and Twilio API.</p>
+    </footer>
+
+  </div>
+
+  <!-- ChartJS, Leaflet and App JS -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+# Local Environment Secrets
+server/.env
+
+# Node Dependency Modules
+server/node_modules/
+node_modules/
+
+# Local IDE folders
+.vscode/
+.idea/
+.gemini/
