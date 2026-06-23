@@ -41,7 +41,7 @@
 const char* ssid = "Sanath";          // Change to your WiFi Network Name
 const char* password = "Sanath012";  // Change to your WiFi Password
 
-const char* server_host = "192.168.1.100";    // Change to your backend server's IP address
+const char* server_host = "172.23.128.125";    // Change to your backend server's IP address
 const int server_port = 3000;                 // Server listening port (default 3000)
 
 #define MQ135_PIN 34                          // MQ135 Analog Pin
