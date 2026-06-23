@@ -241,26 +241,32 @@ function updateTelemetryUI(data) {
   }
 
   // 3. GPS Coordinates & Map
-  if (data.gps && data.gps.valid) {
-    const lat = parseFloat(data.gps.lat);
-    const lng = parseFloat(data.gps.lng);
-    document.getElementById('coord-lat').textContent = lat.toFixed(6);
-    document.getElementById('coord-lng').textContent = lng.toFixed(6);
-    
-    // TinyGPS speed is reported in knots or raw, mapping it to display
-    const speed = data.speed_kmh !== undefined ? data.speed_kmh : 0.0;
-    document.getElementById('gps-speed').textContent = `${parseFloat(speed).toFixed(1)} km/h`;
+  let lat = 12.9232045;
+  let lng = 77.5007957;
+  let gpsValid = false;
 
-    // Move map and marker
-    if (map && riderMarker) {
-      const newPos = [lat, lng];
-      riderMarker.setLatLng(newPos);
-      // Auto pan to coordinate if not actively dragging
-      if (!map.matchesProperty) {
-        map.panTo(newPos);
-      }
+  if (data.gps && data.gps.valid && parseFloat(data.gps.lat) !== 0) {
+    lat = parseFloat(data.gps.lat);
+    lng = parseFloat(data.gps.lng);
+    gpsValid = true;
+  }
+
+  document.getElementById('coord-lat').textContent = gpsValid ? lat.toFixed(6) : `${lat.toFixed(6)} (Default)`;
+  document.getElementById('coord-lng').textContent = gpsValid ? lng.toFixed(6) : `${lng.toFixed(6)} (Default)`;
+  
+  const speed = (gpsValid && data.speed_kmh !== undefined) ? data.speed_kmh : 0.0;
+  document.getElementById('gps-speed').textContent = `${parseFloat(speed).toFixed(1)} km/h`;
+
+  // Move map and marker
+  if (map && riderMarker) {
+    const newPos = [lat, lng];
+    riderMarker.setLatLng(newPos);
+    if (!map.matchesProperty) {
+      map.panTo(newPos);
     }
-    
+  }
+  
+  if (gpsValid) {
     lastGpsTimestamp = data.gps.timestamp || Date.now();
   }
 

@@ -287,10 +287,14 @@ wss.on('connection', (ws, req) => {
         // Check if accident state is toggled from false -> true
         if (data.accident && !wasAccident) {
           console.log("[Alert] Impact accident detected from ESP32 hardware!");
-          const mapsLink = data.gps?.valid 
-            ? `https://maps.google.com/?q=${data.gps.lat},${data.gps.lng}`
-            : "No valid GPS fix.";
-          const smsMsg = `⚠️ ACCIDENT DETECTED! ⚠️\nSmart Helmet has logged a major impact.\nLocation: Lat: ${data.gps?.lat || 'N/A'}, Lng: ${data.gps?.lng || 'N/A'}\n${data.gps?.valid ? 'Track: ' + mapsLink : ''}`;
+          
+          // Use real coordinates if valid, otherwise fallback to default coordinates
+          const gpsValid = data.gps && data.gps.valid && parseFloat(data.gps.lat) !== 0;
+          const latVal = gpsValid ? parseFloat(data.gps.lat) : 12.9232045;
+          const lngVal = gpsValid ? parseFloat(data.gps.lng) : 77.5007957;
+          
+          const mapsLink = `https://maps.google.com/?q=${latVal},${lngVal}`;
+          const smsMsg = `⚠️ ACCIDENT DETECTED! ⚠️\nSmart Helmet has logged a major impact.\nLocation: Lat: ${latVal.toFixed(5)}, Lng: ${lngVal.toFixed(5)}${!gpsValid ? ' (Default - Signal Lost)' : ''}\nTrack here: ${mapsLink}`;
           
           await sendSmsAlert(smsMsg);
         }
