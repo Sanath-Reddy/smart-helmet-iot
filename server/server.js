@@ -336,7 +336,7 @@ wss.on('connection', (ws, req) => {
           const lngVal = gpsValid ? parseFloat(data.gps.lng) : 77.5007957;
           
           const mapsLink = `https://maps.google.com/?q=${latVal},${lngVal}`;
-          const smsMsg = `⚠️ EMERGENCY ALERT: IMPACT DETECTED! ⚠️\nSmart Helmet has logged a major force event.\nLocation: Lat: ${latVal.toFixed(5)}, Lng: ${lngVal.toFixed(5)}\nTrack: ${mapsLink}`;
+          const smsMsg = `⚠️ ACCIDENT DETECTED! ⚠️\nSmart Helmet has logged a major impact.\nLocation: Lat: ${latVal.toFixed(5)}, Lng: ${lngVal.toFixed(5)}\nTrack: ${mapsLink}`;
           
           await sendSmsAlert(smsMsg);
         }
@@ -388,7 +388,7 @@ wss.on('connection', (ws, req) => {
 
           // Send SMS alert
           const mapsLink = `https://maps.google.com/?q=${telemetryState.gps.lat},${telemetryState.gps.lng}`;
-          const smsMsg = `⚠️ EMERGENCY ALERT: IMPACT DETECTED! ⚠️\nSmart Helmet has logged a major force event.\nLocation: Lat: ${telemetryState.gps.lat}, Lng: ${telemetryState.gps.lng}\nTrack: ${mapsLink}`;
+          const smsMsg = `⚠️ ACCIDENT DETECTED! ⚠️\nSmart Helmet has logged a major impact.\nLocation: Lat: ${telemetryState.gps.lat}, Lng: ${telemetryState.gps.lng}\nTrack: ${mapsLink}`;
           await sendSmsAlert(smsMsg);
 
           // Force 8s latch reset timer in testing mode
