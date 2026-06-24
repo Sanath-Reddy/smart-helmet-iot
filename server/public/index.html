@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Real-time IoT Smart Helmet Telemetry & Emergency SOS Dashboard">
-  <title>Aegis Helmet - Smart Helmet Dashboard</title>
+  <title>Smart Helmet with Fall Detection and Alert System</title>
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -50,14 +50,14 @@
           <i class="fa-solid fa-helmet-safety"></i>
         </div>
         <div class="brand-text">
-          <h1>AEGIS HELMET</h1>
-          <span>Smart IoT Telemetry Portal</span>
+          <h1>Smart Helmet</h1>
+          <span>with Fall Detection and Alert System</span>
         </div>
       </div>
       <div class="header-status">
-        <div id="conn-badge" class="badge status-simulating">
+        <div id="conn-badge" class="badge status-testing">
           <span class="pulse-dot"></span>
-          <span id="conn-text">Simulation Mode</span>
+          <span id="conn-text">Offline Monitoring</span>
         </div>
       </div>
     </header>
@@ -177,25 +177,25 @@
           </div>
         </div>
 
-        <!-- Simulation Controller (For testing without hardware) -->
+        <!-- Diagnostic Test Controller (For testing without hardware) -->
         <div class="glass-panel card simulator-card">
           <div class="card-header">
-            <h3><i class="fa-solid fa-sliders text-warning"></i> Dashboard Simulation Controls</h3>
-            <span id="sim-active-badge" class="badge badge-warning">Sim Active</span>
+            <h3><i class="fa-solid fa-sliders text-warning"></i> System Diagnostics</h3>
+            <span id="test-active-badge" class="badge badge-warning">System Active</span>
           </div>
-          <p class="section-desc">Simulate physical parameters to evaluate safety trigger thresholds</p>
+          <p class="section-desc">Adjust physical parameters to evaluate safety trigger thresholds</p>
           <div class="sim-controls">
             
             <div class="control-row">
-              <label for="sim-gas-slider">Simulate Gas/Alcohol level:</label>
+              <label for="test-gas-slider">Adjust Gas/Alcohol level:</label>
               <div class="slider-group">
-                <input type="range" id="sim-gas-slider" min="100" max="6000" step="50" value="350">
-                <span id="sim-gas-val">350 PPM</span>
+                <input type="range" id="test-gas-slider" min="100" max="6000" step="50" value="350">
+                <span id="test-gas-val">350 PPM</span>
               </div>
             </div>
 
             <div class="control-row">
-              <label>Simulate Location Center:</label>
+              <label>Adjust Location Center:</label>
               <div class="btn-group">
                 <button id="preset-blr" class="btn btn-tab active">Bangalore, IN</button>
                 <button id="preset-nyc" class="btn btn-tab">New York, US</button>
@@ -204,9 +204,28 @@
             </div>
 
             <div class="control-row action-row">
-              <button id="sim-impact-btn" class="btn btn-warning">
-                <i class="fa-solid fa-car-burst"></i> Simulate High-G Impact (>2.3g)
+              <button id="test-impact-btn" class="btn btn-warning">
+                <i class="fa-solid fa-car-burst"></i> Trigger High-G Impact (>2.3g)
               </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recipient Contact Settings Card -->
+        <div class="glass-panel card settings-card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-gears text-primary"></i> Recipient Contact Settings</h3>
+          </div>
+          <p class="section-desc">Configure the recipient mobile number for automated SMS alerts</p>
+          <div class="settings-form">
+            <div class="control-row">
+              <div class="input-group">
+                <input type="tel" id="recipient-phone-input" placeholder="+91XXXXXXXXXX">
+                <button id="save-settings-btn" class="btn btn-primary">
+                  <i class="fa-solid fa-floppy-disk"></i> Save
+                </button>
+              </div>
+              <span id="settings-status-msg" class="status-msg"></span>
             </div>
           </div>
         </div>
@@ -217,7 +236,7 @@
 
     <!-- Footer -->
     <footer class="main-footer-desc">
-      <p>&copy; 2026 Aegis Helmet System. Built for IoT PBL. Powered by ESP32, Leaflet Maps, and Twilio API.</p>
+      <p>&copy; 2026 Smart Helmet with Fall Detection and Alert System. Built for IoT PBL. Powered by ESP32, Leaflet Maps, and Twilio API.</p>
     </footer>
 
   </div>

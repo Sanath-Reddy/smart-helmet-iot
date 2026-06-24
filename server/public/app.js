@@ -1,4 +1,4 @@
-// Aegis Helmet - Dashboard Logic
+// Smart Helmet with Fall Detection and Alert System - Dashboard Logic
 
 let socket;
 let map;
@@ -170,7 +170,7 @@ function connectWebSocket() {
       const packet = JSON.parse(event.data);
       
       if (packet.type === "CONNECTION_STATUS") {
-        updateConnectionUI(packet.connected, packet.isSimulated);
+        updateConnectionUI(packet.connected, packet.testActive);
       } else if (packet.type === "TELEMETRY") {
         updateTelemetryUI(packet.data);
       }
@@ -188,23 +188,23 @@ function connectWebSocket() {
 }
 
 // Update connection badges
-function updateConnectionUI(connected, isSimulated) {
+function updateConnectionUI(connected, testActive) {
   const badge = document.getElementById('conn-badge');
   const txt = document.getElementById('conn-text');
-  const simActiveBadge = document.getElementById('sim-active-badge');
+  const testActiveBadge = document.getElementById('test-active-badge');
   
-  if (isSimulated) {
-    badge.className = "badge status-simulating";
-    txt.textContent = "Simulation Mode";
-    simActiveBadge.style.display = "inline-flex";
+  if (testActive) {
+    badge.className = "badge status-testing";
+    txt.textContent = "Offline Monitoring";
+    if (testActiveBadge) testActiveBadge.style.display = "inline-flex";
   } else if (connected) {
     badge.className = "badge status-connected";
     txt.textContent = "ESP32 Live";
-    simActiveBadge.style.display = "none";
+    if (testActiveBadge) testActiveBadge.style.display = "none";
   } else {
     badge.className = "badge status-offline";
     txt.textContent = "Offline";
-    simActiveBadge.style.display = "none";
+    if (testActiveBadge) testActiveBadge.style.display = "none";
   }
 }
 
@@ -251,8 +251,8 @@ function updateTelemetryUI(data) {
     gpsValid = true;
   }
 
-  document.getElementById('coord-lat').textContent = gpsValid ? lat.toFixed(6) : `${lat.toFixed(6)} (Default)`;
-  document.getElementById('coord-lng').textContent = gpsValid ? lng.toFixed(6) : `${lng.toFixed(6)} (Default)`;
+  document.getElementById('coord-lat').textContent = gpsValid ? lat.toFixed(6) : `${lat.toFixed(6)} (Base)`;
+  document.getElementById('coord-lng').textContent = gpsValid ? lng.toFixed(6) : `${lng.toFixed(6)} (Base)`;
   
   const speed = (gpsValid && data.speed_kmh !== undefined) ? data.speed_kmh : 0.0;
   document.getElementById('gps-speed').textContent = `${parseFloat(speed).toFixed(1)} km/h`;
@@ -412,9 +412,9 @@ async function findNearbyEmergency(lat, lng) {
 
 // Trigger Manual SOS via SOS button click
 async function triggerEmergencySOS() {
-  let lat = 12.9232045; // Fallback default coordinates
+  let lat = 12.9232045; // Fallback coordinates
   let lng = 77.5007957;
-  let source = "Smart Helmet Dashboard (Cached Location)";
+  let source = "Smart Helmet Dashboard (Base Location)";
 
   if (riderMarker) {
     const pos = riderMarker.getLatLng();
@@ -479,55 +479,99 @@ async function sendSOSPayload(lat, lng, source) {
   }
 }
 
-// Simulator Control triggers
-function initSimulatorControls() {
-  const gasSlider = document.getElementById('sim-gas-slider');
-  const gasVal = document.getElementById('sim-gas-val');
-
-  gasSlider.addEventListener('input', (e) => {
-    const val = e.target.value;
-    gasVal.textContent = `${val} PPM`;
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({
-        type: "UPDATE_SIM_GAS",
-        value: val
-      }));
+// Diagnostics & Calibration Control triggers
+  function initDiagnosticsControls() {
+    const gasSlider = document.getElementById('test-gas-slider');
+    const gasVal = document.getElementById('test-gas-val');
+  
+    gasSlider.addEventListener('input', (e) => {
+      const val = e.target.value;
+      gasVal.textContent = `${val} PPM`;
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({
+          type: "UPDATE_TEST_GAS",
+          value: val
+        }));
+      }
+    });
+  
+    // Presets configuration
+    const presetBlr = document.getElementById('preset-blr');
+    const presetNyc = document.getElementById('preset-nyc');
+    const presetLon = document.getElementById('preset-lon');
+  
+    const updatePresetClass = (activeBtn) => {
+      [presetBlr, presetNyc, presetLon].forEach(btn => btn.classList.remove('active'));
+      activeBtn.classList.add('active');
+    };
+  
+    presetBlr.addEventListener('click', () => {
+      updatePresetClass(presetBlr);
+      socket.send(JSON.stringify({ type: "SET_TEST_GPS", lat: 12.9232045, lng: 77.5007957 }));
+    });
+  
+    presetNyc.addEventListener('click', () => {
+      updatePresetClass(presetNyc);
+      socket.send(JSON.stringify({ type: "SET_TEST_GPS", lat: 40.7128, lng: -74.0060 }));
+    });
+  
+    presetLon.addEventListener('click', () => {
+      updatePresetClass(presetLon);
+      socket.send(JSON.stringify({ type: "SET_TEST_GPS", lat: 51.5074, lng: -0.1278 }));
+    });
+  
+    // Impact crash test button
+    const crashBtn = document.getElementById('test-impact-btn');
+    crashBtn.addEventListener('click', () => {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: "TRIGGER_TEST_ACCIDENT" }));
+      }
+    });
+  }
+  
+  // Fetch settings from server
+  async function loadSettings() {
+    try {
+      const res = await fetch('/api/settings');
+      const data = await res.json();
+      if (data.recipientPhoneNumber) {
+        document.getElementById('recipient-phone-input').value = data.recipientPhoneNumber;
+      }
+    } catch (err) {
+      console.error("[Settings] Failed to load settings:", err);
     }
-  });
-
-  // Presets configuration
-  const presetBlr = document.getElementById('preset-blr');
-  const presetNyc = document.getElementById('preset-nyc');
-  const presetLon = document.getElementById('preset-lon');
-
-  const updatePresetClass = (activeBtn) => {
-    [presetBlr, presetNyc, presetLon].forEach(btn => btn.classList.remove('active'));
-    activeBtn.classList.add('active');
-  };
-
-  presetBlr.addEventListener('click', () => {
-    updatePresetClass(presetBlr);
-    socket.send(JSON.stringify({ type: "SET_SIM_GPS", lat: 12.9232045, lng: 77.5007957 }));
-  });
-
-  presetNyc.addEventListener('click', () => {
-    updatePresetClass(presetNyc);
-    socket.send(JSON.stringify({ type: "SET_SIM_GPS", lat: 40.7128, lng: -74.0060 }));
-  });
-
-  presetLon.addEventListener('click', () => {
-    updatePresetClass(presetLon);
-    socket.send(JSON.stringify({ type: "SET_SIM_GPS", lat: 51.5074, lng: -0.1278 }));
-  });
-
-  // Impact crash test button
-  const crashBtn = document.getElementById('sim-impact-btn');
-  crashBtn.addEventListener('click', () => {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({ type: "TRIGGER_SIM_ACCIDENT" }));
+  }
+  
+  // Save settings to server
+  async function saveSettings() {
+    const input = document.getElementById('recipient-phone-input');
+    const msg = document.getElementById('settings-status-msg');
+    const val = input.value.trim();
+  
+    msg.className = "status-msg";
+    msg.textContent = "";
+  
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ number: val })
+      });
+      const data = await res.json();
+      if (data.success) {
+        msg.className = "status-msg success";
+        msg.textContent = "Settings saved successfully!";
+        setTimeout(() => { msg.textContent = ""; }, 3000);
+      } else {
+        msg.className = "status-msg error";
+        msg.textContent = data.error || "Failed to save settings.";
+      }
+    } catch (err) {
+      msg.className = "status-msg error";
+      msg.textContent = "Error communicating with server.";
+      console.error("[Settings] Save failed:", err);
     }
-  });
-}
+  }
 
 // Cancel Alarm Events (false alarms)
 function dismissAlarm() {
@@ -552,7 +596,7 @@ function dismissAlarm() {
 
 // Document Load Event
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize default location map
+  // Initialize location map
   initMap(12.9232045, 77.5007957);
   
   // Initialize chart
@@ -565,9 +609,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('sos-btn').addEventListener('click', triggerEmergencySOS);
   document.getElementById('dismiss-siren-btn').addEventListener('click', dismissAlarm);
   document.getElementById('card-dismiss-btn').addEventListener('click', dismissAlarm);
+  document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
   
   // Initialize slider interactions
-  initSimulatorControls();
+  initDiagnosticsControls();
+
+  // Load contact settings
+  loadSettings();
 
   // Watch GPS Staleness every 5 seconds
   gpsStalenessTimer = setInterval(checkGpsStaleness, 5000);

@@ -5,8 +5,8 @@
  * 1. MPU6050 (I2C):
  *    - VCC -> 3.3V
  *    - GND -> GND
- *    - SDA -> GPIO 21 (Default I2C SDA on ESP32)
- *    - SCL -> GPIO 22 (Default I2C SCL on ESP32)
+ *    - SDA -> GPIO 21 (I2C SDA on ESP32)
+ *    - SCL -> GPIO 22 (I2C SCL on ESP32)
  * 
  * 2. NEO-6M GPS Module (HardwareSerial2):
  *    - VCC -> 3.3V / 5V
@@ -42,7 +42,7 @@ const char* ssid = "Sanath";          // Change to your WiFi Network Name
 const char* password = "Sanath012";  // Change to your WiFi Password
 
 const char* server_host = "172.23.128.125";    // Change to your backend server's IP address
-const int server_port = 3000;                 // Server listening port (default 3000)
+const int server_port = 3000;                 // Server listening port (port 3000)
 
 #define MQ135_PIN 34                          // MQ135 Analog Pin
 #define ACCEL_THRESHOLD_G 4.5                 // Accident threshold in G's
@@ -142,7 +142,7 @@ void pushToBuffer(TelemetryFrame frame) {
     bufferTail = (bufferTail + 1) % BUFFER_SIZE;
     Serial.println("[Buffer] Queue overflow, oldest frame overwritten.");
   }
-  Serial.printf("[Buffer] Telemetry frame cached. Queue occupancy: %d/%d\n", bufferCount, BUFFER_SIZE);
+  Serial.printf("[Buffer] Telemetry frame buffered. Queue occupancy: %d/%d\n", bufferCount, BUFFER_SIZE);
 }
 
 // Retrieve oldest packet from queue
@@ -347,7 +347,7 @@ void readGPS() {
 int readGasPPM() {
   int analogVal = analogRead(MQ135_PIN);
   
-  // Linear scaling simulation mapping 0-4095 to 0-10,000 PPM
+  // Linear scaling mapping 0-4095 to 0-10,000 PPM
   float ppm = map(analogVal, 0, 4095, 0, 10000);
   return constrain((int)ppm, 0, 10000);
 }

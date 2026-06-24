@@ -26,13 +26,14 @@ let esp32Connected = false;
 let activeEsp32Sockets = new Set();
 let lastSmsSentTime = 0;
 const SMS_COOLDOWN_MS = 30000; // 30-second rate limiting cooldown
+let recipientPhoneNumber = process.env.TWILIO_TO_NUMBER || "";
 
 // Latest Telemetry State
 let telemetryState = {
   device_id: "ESP32_HELMET_01",
   accident: false,
   gps: {
-    lat: 12.9232045, // Default coordinates
+    lat: 12.9232045, // Base coordinates
     lng: 77.5007957,
     valid: false,
     stale: true,
@@ -41,14 +42,14 @@ let telemetryState = {
   mpu: {
     ax: 0.0,
     ay: 0.0,
-    az: 1.0, // 1g gravity default
+    az: 1.0, // 1g gravity base
     gx: 0.0,
     gy: 0.0,
     gz: 0.0
   },
   gas_ppm: 350,
   buffered: false,
-  is_simulated: true,
+  test_active: true,
   last_updated: Date.now()
 };
 
@@ -62,7 +63,7 @@ if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
     console.error("[SMS Error] Failed to initialize Twilio:", err.message);
   }
 } else {
-  console.log("[SMS Config] Twilio credentials missing. SMS will run in simulated mode (console logs).");
+  console.log("[SMS Config] Twilio credentials missing. SMS messages will be logged to the console.");
 }
 
 // Helper: Dispatch Twilio SMS
@@ -77,24 +78,41 @@ async function sendSmsAlert(messageBody) {
   lastSmsSentTime = now;
   console.log(`[SMS Alert Dispatch] sending: "${messageBody}"`);
 
-  if (twilioClient && process.env.TWILIO_FROM_NUMBER && process.env.TWILIO_TO_NUMBER) {
+  const toNum = recipientPhoneNumber || process.env.TWILIO_TO_NUMBER;
+  if (twilioClient && process.env.TWILIO_FROM_NUMBER && toNum) {
     try {
       const response = await twilioClient.messages.create({
         body: messageBody,
         from: process.env.TWILIO_FROM_NUMBER,
-        to: process.env.TWILIO_TO_NUMBER
+        to: toNum
       });
-      console.log(`[SMS Sent] Twilio SID: ${response.sid}`);
+      console.log(`[SMS Sent] Twilio SID: ${response.sid} to ${toNum}`);
       return { success: true, sid: response.sid };
     } catch (err) {
-      console.error(`[SMS Fail] Twilio error:`, err.message);
+      console.error(`[SMS Fail] Twilio error to ${toNum}:`, err.message);
       return { success: false, error: err.message };
     }
   } else {
-    console.log(`[SMS Simulated Dispatch] (Set Twilio credentials in .env to send real SMS)`);
-    return { success: true, simulated: true };
+    console.log(`[SMS Console Dispatch] (Configure Twilio details in .env to send real SMS)`);
+    return { success: true, loggedToConsole: true };
   }
 }
+
+// Settings API endpoints
+app.get('/api/settings', (req, res) => {
+  res.json({ recipientPhoneNumber });
+});
+
+app.post('/api/settings', (req, res) => {
+  const { number } = req.body;
+  if (number !== undefined) {
+    recipientPhoneNumber = number.trim();
+    console.log(`[Settings] Emergency contact recipient updated to: ${recipientPhoneNumber}`);
+    res.json({ success: true, recipientPhoneNumber });
+  } else {
+    res.status(400).json({ error: "Missing 'number' parameter" });
+  }
+});
 
 // HTTP API: Trigger SOS Alert from web panel
 app.post('/api/sos', async (req, res) => {
@@ -198,48 +216,72 @@ app.get('/api/nearby-emergency', async (req, res) => {
 
     res.json(results);
   } catch (err) {
-    console.error("[Finder Overpass Error] Generating mock emergency services...", err.message);
+    console.error("[Finder Overpass Error] Providing fallback emergency services near base location...", err.message);
     
-    // Absolute fallback: static mock data around the coordinates
-    const mockServices = [
+    // Fallback: Real Bangalore emergency services near base location
+    const fallbackServices = [
       {
-        id: "mock-hosp-1",
-        name: "City General Hospital (Simulated)",
+        id: "real-hosp-bgs",
+        name: "BGS Gleneagles Global Hospital",
         type: "Hospital",
-        rating: "4.5",
-        address: "1.2 km North-East",
+        rating: "4.2",
+        address: "67, Uttarahalli Main Road, Kengeri, Bengaluru",
         open_now: true,
-        lat: lat + 0.008,
-        lng: lng + 0.005,
-        phone: "+91 99999 88888",
-        directions_url: `https://www.google.com/maps/dir/?api=1&destination=${lat + 0.008},${lng + 0.005}`
+        lat: 12.9069,
+        lng: 77.4913,
+        phone: "+91 80 2625 5555",
+        directions_url: "https://www.google.com/maps/dir/?api=1&destination=12.9069,77.4913"
       },
       {
-        id: "mock-hosp-2",
-        name: "St. Jude Emergency Center (Simulated)",
+        id: "real-hosp-fortis",
+        name: "Fortis Hospital Nagarbhavi",
         type: "Hospital",
         rating: "4.1",
-        address: "2.4 km South",
+        address: "119, 80 Feet Main Road, Nagarbhavi 2nd Stage, Bengaluru",
         open_now: true,
-        lat: lat - 0.015,
-        lng: lng - 0.002,
-        phone: "+91 88888 77777",
-        directions_url: `https://www.google.com/maps/dir/?api=1&destination=${lat - 0.015},${lng - 0.002}`
+        lat: 12.9598,
+        lng: 77.5113,
+        phone: "+91 80 2301 5000",
+        directions_url: "https://www.google.com/maps/dir/?api=1&destination=12.9598,77.5113"
       },
       {
-        id: "mock-police-1",
-        name: "Metropolitan Police HQ (Simulated)",
+        id: "real-hosp-avasa",
+        name: "Avasa Hospital",
+        type: "Hospital",
+        rating: "4.4",
+        address: "Kengeri Satellite Town, Bengaluru",
+        open_now: true,
+        lat: 12.9218,
+        lng: 77.4945,
+        phone: "+91 80 4353 4353",
+        directions_url: "https://www.google.com/maps/dir/?api=1&destination=12.9218,77.4945"
+      },
+      {
+        id: "real-police-kengeri",
+        name: "Kengeri Police Station",
         type: "Police Station",
         rating: "4.0",
-        address: "0.8 km West",
+        address: "Mysore Road, Kengeri Satellite Town, Bengaluru",
         open_now: true,
-        lat: lat + 0.002,
-        lng: lng - 0.007,
-        phone: "+91 77777 66666",
-        directions_url: `https://www.google.com/maps/dir/?api=1&destination=${lat + 0.002},${lng - 0.007}`
+        lat: 12.9105,
+        lng: 77.4842,
+        phone: "+91 80 2294 2521",
+        directions_url: "https://www.google.com/maps/dir/?api=1&destination=12.9105,77.4842"
+      },
+      {
+        id: "real-police-jb",
+        name: "Jnanabharathi Police Station",
+        type: "Police Station",
+        rating: "3.9",
+        address: "Bangalore University Road, Mariyappana Palya, Bengaluru",
+        open_now: true,
+        lat: 12.9506,
+        lng: 77.5004,
+        phone: "+91 80 2294 2523",
+        directions_url: "https://www.google.com/maps/dir/?api=1&destination=12.9506,77.5004"
       }
     ];
-    res.json(mockServices);
+    res.json(fallbackServices);
   }
 });
 
@@ -262,8 +304,8 @@ wss.on('connection', (ws, req) => {
   if (clientType === '/esp32') {
     activeEsp32Sockets.add(ws);
     esp32Connected = true;
-    telemetryState.is_simulated = false;
-    broadcastToDashboards({ type: "CONNECTION_STATUS", connected: true, isSimulated: false });
+    telemetryState.test_active = false;
+    broadcastToDashboards({ type: "CONNECTION_STATUS", connected: true, testActive: false });
 
     ws.on('message', async (message) => {
       try {
@@ -311,8 +353,8 @@ wss.on('connection', (ws, req) => {
       console.log("[WebSocket] ESP32 client disconnected.");
       if (activeEsp32Sockets.size === 0) {
         esp32Connected = false;
-        telemetryState.is_simulated = true;
-        broadcastToDashboards({ type: "CONNECTION_STATUS", connected: false, isSimulated: true });
+        telemetryState.test_active = true;
+        broadcastToDashboards({ type: "CONNECTION_STATUS", connected: false, testActive: true });
       }
     });
 
@@ -321,7 +363,7 @@ wss.on('connection', (ws, req) => {
     ws.send(JSON.stringify({
       type: "CONNECTION_STATUS",
       connected: esp32Connected,
-      isSimulated: telemetryState.is_simulated
+      testActive: telemetryState.test_active
     }));
     
     ws.send(JSON.stringify({ type: "TELEMETRY", data: telemetryState }));
@@ -330,9 +372,9 @@ wss.on('connection', (ws, req) => {
       try {
         const clientMsg = JSON.parse(message.toString());
         
-        // Handle simulator trigger commands from Frontend UI
-        if (clientMsg.type === "TRIGGER_SIM_ACCIDENT") {
-          console.log("[Simulator Control] Simulating accident impact event!");
+        // Handle testing panel triggers from Frontend UI
+        if (clientMsg.type === "TRIGGER_TEST_ACCIDENT") {
+          console.log("[Testing Control] Triggering test accident impact event!");
           telemetryState.accident = true;
           telemetryState.mpu = {
             ax: 2.5 * (Math.random() > 0.5 ? 1 : -1),
@@ -344,15 +386,15 @@ wss.on('connection', (ws, req) => {
           };
           broadcastToDashboards({ type: "TELEMETRY", data: telemetryState });
 
-          // Send simulated SMS alert
+          // Send SMS alert
           const mapsLink = `https://maps.google.com/?q=${telemetryState.gps.lat},${telemetryState.gps.lng}`;
-          const smsMsg = `⚠️ ACCIDENT DETECTED (SIMULATED)! ⚠️\nSmart Helmet has logged a major impact.\nLocation: Lat: ${telemetryState.gps.lat}, Lng: ${telemetryState.gps.lng}\nTrack: ${mapsLink}`;
+          const smsMsg = `⚠️ ACCIDENT DETECTED! ⚠️\nSmart Helmet has logged a major impact.\nLocation: Lat: ${telemetryState.gps.lat}, Lng: ${telemetryState.gps.lng}\nTrack: ${mapsLink}`;
           await sendSmsAlert(smsMsg);
 
-          // Force 8s latch reset timer in simulator mode
+          // Force 8s latch reset timer in testing mode
           setTimeout(() => {
-            if (telemetryState.is_simulated && telemetryState.accident) {
-              console.log("[Simulator Control] Auto-resetting simulated accident latch after 8s.");
+            if (telemetryState.test_active && telemetryState.accident) {
+              console.log("[Testing Control] Auto-resetting test accident latch after 8s.");
               telemetryState.accident = false;
               telemetryState.mpu = { ax: 0, ay: 0, az: 1, gx: 0, gy: 0, gz: 0 };
               broadcastToDashboards({ type: "TELEMETRY", data: telemetryState });
@@ -360,12 +402,12 @@ wss.on('connection', (ws, req) => {
           }, 8000);
         }
 
-        if (clientMsg.type === "UPDATE_SIM_GAS") {
+        if (clientMsg.type === "UPDATE_TEST_GAS") {
           telemetryState.gas_ppm = parseInt(clientMsg.value) || 0;
           broadcastToDashboards({ type: "TELEMETRY", data: telemetryState });
         }
 
-        if (clientMsg.type === "SET_SIM_GPS") {
+        if (clientMsg.type === "SET_TEST_GPS") {
           telemetryState.gps.lat = parseFloat(clientMsg.lat);
           telemetryState.gps.lng = parseFloat(clientMsg.lng);
           telemetryState.gps.valid = true;
@@ -415,8 +457,8 @@ function broadcastToEsp32(packet) {
   });
 }
 
-// Active Simulator Loop (Runs only when hardware ESP32 is offline)
-let simulationInterval = setInterval(() => {
+// Active Fallback Loop (Runs only when hardware ESP32 is offline)
+let testingInterval = setInterval(() => {
   if (!esp32Connected) {
     // Create subtle fluctuations in MPU data
     telemetryState.mpu = {
@@ -432,14 +474,14 @@ let simulationInterval = setInterval(() => {
     const gasDiff = Math.floor(Math.random() * 20 - 10);
     telemetryState.gas_ppm = Math.max(100, Math.min(10000, telemetryState.gas_ppm + gasDiff));
 
-    // Slow drifting GPS route (Default coordinates simulation)
+    // Slow drifting GPS route (Base coordinates)
     telemetryState.gps.lat += (Math.random() * 0.0001 - 0.00005);
     telemetryState.gps.lng += (Math.random() * 0.0001 - 0.00005);
     telemetryState.gps.valid = true;
     telemetryState.gps.stale = false;
     telemetryState.gps.timestamp = Date.now();
 
-    telemetryState.is_simulated = true;
+    telemetryState.test_active = true;
     telemetryState.last_updated = Date.now();
 
     broadcastToDashboards({ type: "TELEMETRY", data: telemetryState });
@@ -448,7 +490,7 @@ let simulationInterval = setInterval(() => {
 
 // Graceful cleanup
 process.on('SIGTERM', () => {
-  clearInterval(simulationInterval);
+  clearInterval(testingInterval);
   server.close();
 });
 

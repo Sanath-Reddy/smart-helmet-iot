@@ -194,7 +194,7 @@ body {
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
-.status-simulating {
+.status-testing {
   background: rgba(245, 158, 11, 0.12);
   color: #fbbf24;
   border: 1px solid rgba(245, 158, 11, 0.25);
@@ -923,3 +923,57 @@ body {
     align-self: flex-end;
   }
 }
+
+/* Primary Button Styling */
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+}
+
+.btn-primary:hover {
+  background: #2563eb;
+  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.5);
+}
+
+/* Contact Settings Styling */
+.settings-card .input-group {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.settings-card .input-group input[type="tel"] {
+  flex-grow: 1;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  outline: none;
+  transition: var(--transition-smooth);
+}
+
+.settings-card .input-group input[type="tel"]:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+}
+
+.status-msg {
+  font-size: 12px;
+  margin-top: 6px;
+  display: block;
+  font-weight: 500;
+  transition: var(--transition-smooth);
+}
+
+.status-msg.success {
+  color: var(--color-success);
+}
+
+.status-msg.error {
+  color: var(--color-danger);
+}
+
