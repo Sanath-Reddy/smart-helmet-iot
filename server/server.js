@@ -294,7 +294,7 @@ wss.on('connection', (ws, req) => {
           const lngVal = gpsValid ? parseFloat(data.gps.lng) : 77.5007957;
           
           const mapsLink = `https://maps.google.com/?q=${latVal},${lngVal}`;
-          const smsMsg = `⚠️ ACCIDENT DETECTED! ⚠️\nSmart Helmet has logged a major impact.\nLocation: Lat: ${latVal.toFixed(5)}, Lng: ${lngVal.toFixed(5)}${!gpsValid ? ' (Default - Signal Lost)' : ''}\nTrack here: ${mapsLink}`;
+          const smsMsg = `⚠️ ACCIDENT DETECTED! ⚠️\nSmart Helmet has logged a major impact.\nLocation: Lat: ${latVal.toFixed(5)}, Lng: ${lngVal.toFixed(5)}\nTrack: ${mapsLink}`;
           
           await sendSmsAlert(smsMsg);
         }
