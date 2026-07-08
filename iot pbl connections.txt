@@ -1,0 +1,16 @@
+violet 5
+white gnd
+green 3.3
+
+mq35:
+	brown vcc
+	blue gnd
+	yellow a out
+mpu:
+	blue vcc and sda
+	green gnd
+	black scl
+neo6m:
+	red vcc
+	white gnd and rx
+	yellow tx

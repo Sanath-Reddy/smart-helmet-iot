@@ -146,6 +146,9 @@ app.get('/api/nearby-emergency', async (req, res) => {
       const fetchPlaces = async (type) => {
         const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=${type}&key=${apiKey}`;
         const response = await axios.get(url);
+        if (response.data.status && response.data.status !== 'OK' && response.data.status !== 'ZERO_RESULTS') {
+          throw new Error(`Google Places API Error: ${response.data.status} - ${response.data.error_message || ''}`);
+        }
         return (response.data.results || []).map(place => ({
           id: place.place_id,
           name: place.name,
@@ -190,7 +193,10 @@ app.get('/api/nearby-emergency', async (req, res) => {
     `;
 
     const response = await axios.post(overpassUrl, query, {
-      headers: { 'Content-Type': 'text/plain' }
+      headers: {
+        'Content-Type': 'text/plain',
+        'User-Agent': 'SmartHelmetEmergencyFinder/1.0'
+      }
     });
 
     const elements = response.data.elements || [];
@@ -216,9 +222,9 @@ app.get('/api/nearby-emergency', async (req, res) => {
 
     res.json(results);
   } catch (err) {
-    console.error("[Finder Overpass Error] Providing fallback emergency services near base location...", err.message);
+    console.error("[Finder Overpass Error] Providing fallback emergency services near rider location...", err.message);
     
-    // Fallback: Real Bangalore emergency services near base location
+    // Fallback: Real Bangalore emergency services near rider location
     const fallbackServices = [
       {
         id: "real-hosp-bgs",

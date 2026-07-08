@@ -251,8 +251,8 @@ function updateTelemetryUI(data) {
     gpsValid = true;
   }
 
-  document.getElementById('coord-lat').textContent = gpsValid ? lat.toFixed(6) : `${lat.toFixed(6)} (Base)`;
-  document.getElementById('coord-lng').textContent = gpsValid ? lng.toFixed(6) : `${lng.toFixed(6)} (Base)`;
+  document.getElementById('coord-lat').textContent = lat.toFixed(6);
+  document.getElementById('coord-lng').textContent = lng.toFixed(6);
   
   const speed = (gpsValid && data.speed_kmh !== undefined) ? data.speed_kmh : 0.0;
   document.getElementById('gps-speed').textContent = `${parseFloat(speed).toFixed(1)} km/h`;
@@ -263,6 +263,10 @@ function updateTelemetryUI(data) {
     riderMarker.setLatLng(newPos);
     if (!map.matchesProperty) {
       map.panTo(newPos);
+    }
+    // Automatically search for nearby emergency services once coordinates are loaded
+    if (emergencyMarkers.length === 0) {
+      findNearbyEmergency(lat, lng);
     }
   }
   
@@ -414,7 +418,7 @@ async function findNearbyEmergency(lat, lng) {
 async function triggerEmergencySOS() {
   let lat = 12.9232045; // Fallback coordinates
   let lng = 77.5007957;
-  let source = "Smart Helmet Dashboard (Base Location)";
+  let source = "Smart Helmet Dashboard";
 
   if (riderMarker) {
     const pos = riderMarker.getLatLng();

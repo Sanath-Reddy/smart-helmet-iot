@@ -41,7 +41,7 @@
 const char* ssid = "Sanath";          // Change to your WiFi Network Name
 const char* password = "Sanath012";  // Change to your WiFi Password
 
-const char* server_host = "172.23.128.125";    // Change to your backend server's IP address
+const char* server_host = "10.99.126.125";    // Change to your backend server's IP address
 const int server_port = 3000;                 // Server listening port (port 3000)
 
 #define MQ135_PIN 34                          // MQ135 Analog Pin
@@ -230,11 +230,23 @@ void initWiFi() {
   // Note: Non-blocking WiFi connection is handled in loop, here we trigger initial request
 }
 
+bool wifi_connected_flag = false;
+
 void handleWiFiConnection() {
   if (WiFi.status() == WL_CONNECTED) {
+    if (!wifi_connected_flag) {
+      Serial.print("[WiFi] Connection established! IP Address: ");
+      Serial.println(WiFi.localIP());
+      wifi_connected_flag = true;
+    }
     // Reset backoff once connected
     wifi_backoff_delay = 10000; 
     return;
+  }
+
+  if (wifi_connected_flag) {
+    Serial.println("[WiFi] Connection lost. Reconnecting...");
+    wifi_connected_flag = false;
   }
 
   unsigned long current_time = millis();
