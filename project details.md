@@ -66,6 +66,7 @@ The ESP32 runs C++ firmware compiled via the Arduino IDE. It manages sensors, th
 ### 3.2 Offline Telemetry Circular Buffer
 To combat network instability, a local in-memory structure ensures critical logs are not lost.
 - **Buffer Size:** **12 elements** (`BUFFER_SIZE 12`).
+- **Packet Size:** Each `TelemetryFrame` struct stored in the memory buffer takes up **64 bytes** of RAM. When serialized to JSON for transmission over WebSockets, the payload size varies depending on values but is generally around 300-400 bytes per frame.
 - **Behavior:** Operates as a circular queue. If a packet cannot be dispatched because of missing WiFi or WebSocket connection, it is pushed to this buffer. If the buffer overflows, the oldest frame is overwritten.
 - **Flush Mechanism:** On WebSocket reconnection, all buffered telemetry is sequentially pushed out with an **80 ms delay** per packet to avoid TCP/IP network congestion spikes.
 
